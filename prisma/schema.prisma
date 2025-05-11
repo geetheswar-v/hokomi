@@ -19,6 +19,11 @@ model User {
   accounts      Account[]
   sessions      Session[]
   passwordResetTokens PasswordResetToken[]
+  
+  // Anime/Manga tracking
+  animeEntries    AnimeEntry[]
+  mangaEntries    MangaEntry[]
+  favorites       Favorite[]
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,4 +76,87 @@ model PasswordResetToken {
   user    User     @relation(fields: [email], references: [email], onDelete: Cascade)
  
   createdAt DateTime @default(now())
+}
+
+// Anime/Manga tracking models
+model AnimeEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  malId     Int      // MyAnimeList ID
+  title     String
+  imageUrl  String?
+  status    WatchStatus @default(PLAN_TO_WATCH)
+  score     Int?     @db.SmallInt // 1-10 rating
+  progress  Int      @default(0) // episodes watched
+  totalEpisodes Int?
+  startDate DateTime?
+  endDate   DateTime?
+  notes     String?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, malId])
+}
+
+model MangaEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  malId     Int      // MyAnimeList ID
+  title     String
+  imageUrl  String?
+  status    ReadStatus @default(PLAN_TO_READ)
+  score     Int?     @db.SmallInt // 1-10 rating
+  chaptersRead Int   @default(0)
+  volumesRead  Int   @default(0)
+  totalChapters Int?
+  totalVolumes  Int?
+  startDate DateTime?
+  endDate   DateTime?
+  notes     String?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, malId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  malId     Int      // MyAnimeList ID
+  type      MediaType
+  title     String
+  imageUrl  String?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, malId, type])
+}
+
+enum WatchStatus {
+  WATCHING
+  COMPLETED
+  ON_HOLD
+  DROPPED
+  PLAN_TO_WATCH
+}
+
+enum ReadStatus {
+  READING
+  COMPLETED
+  ON_HOLD
+  DROPPED
+  PLAN_TO_READ
+}
+
+enum MediaType {
+  ANIME
+  MANGA
 }
