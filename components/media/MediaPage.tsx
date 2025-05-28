@@ -41,7 +41,6 @@ export default function MediaPage({ type }: MediaPageProps) {
       .slice(0, 5);
   }, [airingMedia]);
 
-  // Memoized user entries map for performance
   const userEntries = useMemo(() => {
     const map = new Map<number, UserEntry>();
     
@@ -56,7 +55,6 @@ export default function MediaPage({ type }: MediaPageProps) {
       }
     });
 
-    // Add non-favorite entries from both lists
     const allMedia = [...topMedia, ...airingMedia];
     allMedia.forEach(media => {
       if (!map.has(media.mal_id)) {
@@ -71,7 +69,6 @@ export default function MediaPage({ type }: MediaPageProps) {
     return map;
   }, [favorites, topMedia, airingMedia, type]);
 
-  // Fetch media data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -120,7 +117,7 @@ export default function MediaPage({ type }: MediaPageProps) {
     const fetchFavorites = async () => {
       if (session?.user?.id) {
         try {
-          const favoritesResponse = await fetch("/api/track/favorites");
+          const favoritesResponse = await fetch("/api/user/favorites/list");
           if (favoritesResponse.ok) {
             const userFavorites = await favoritesResponse.json();
             setFavorites(userFavorites);
@@ -138,36 +135,48 @@ export default function MediaPage({ type }: MediaPageProps) {
     }
   }, [session?.user?.id, status]);
 
-  // Toggle favorite functionality - memoized for performance
+  // Toggle favorite
   const handleToggleFavorite = useCallback(async (malId: number) => {
     if (!session?.user?.id) return;
 
+    // Find the media data from either topMedia or airingMedia
+    const mediaData = [...topMedia, ...airingMedia].find(media => media.mal_id === malId);
+    if (!mediaData) return;
+
+    const isFavorite = favorites.some(fav => fav.malId === malId && fav.type === type.toUpperCase());
+
     try {
-      const response = await fetch("/api/track/favorites", {
+      const response = await fetch("/api/user/favorites", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId,
-          type: type.toUpperCase(),
+          type: type.toLowerCase(),
+          action: isFavorite ? "remove" : "add",
+          title: mediaData.title,
+          imageUrl: mediaData.images.webp.large_image_url || mediaData.images.jpg.large_image_url,
         }),
       });
 
       if (!response.ok) throw new Error("Failed to toggle favorite");
 
-      const result = await response.json();
-      
       // Update favorites state
-      if (result.action === "added") {
-        setFavorites(prev => [...prev, result.favorite]);
+      if (!isFavorite) {
+        setFavorites(prev => [...prev, {
+          malId,
+          type: type.toUpperCase(),
+          title: mediaData.title,
+          imageUrl: mediaData.images.webp.large_image_url || mediaData.images.jpg.large_image_url,
+        }]);
       } else {
         setFavorites(prev => prev.filter(fav => !(fav.malId === malId && fav.type === type.toUpperCase())));
       }
     } catch (err) {
       console.error("Error toggling favorite:", err);
     }
-  }, [session?.user?.id, type]);
+  }, [session?.user?.id, type, favorites, topMedia, airingMedia]);
 
   if (isLoading) {
     return (

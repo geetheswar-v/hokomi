@@ -12,7 +12,9 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
       <Header />
-      {children}
+      <main className="pt-16">
+        {children}
+      </main>
     </SessionProvider>
   );
 }
