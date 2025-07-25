@@ -86,12 +86,10 @@ model AnimeEntry {
   title     String
   imageUrl  String?
   status    WatchStatus @default(PLAN_TO_WATCH)
-  score     Int?     @db.SmallInt // 1-10 rating
-  progress  Int      @default(0) // episodes watched
-  totalEpisodes Int?
+  episodesWatched Int @default(0) // episodes watched
+  totalEpisodes Int? // can be null for ongoing series
   startDate DateTime?
   endDate   DateTime?
-  notes     String?
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -108,14 +106,10 @@ model MangaEntry {
   title     String
   imageUrl  String?
   status    ReadStatus @default(PLAN_TO_READ)
-  score     Int?     @db.SmallInt // 1-10 rating
   chaptersRead Int   @default(0)
-  volumesRead  Int   @default(0)
-  totalChapters Int?
-  totalVolumes  Int?
+  totalChapters Int? // can be null for ongoing series
   startDate DateTime?
   endDate   DateTime?
-  notes     String?
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   

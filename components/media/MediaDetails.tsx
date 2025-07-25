@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { Heart, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import TrackingPopover from "./TrackingPopover";
 import type { AnimeData, MangaData } from "@/types";
 
 interface MediaDetailsProps {
@@ -16,17 +13,24 @@ interface MediaDetailsProps {
   type: "anime" | "manga";
   userEntry?: {
     status: string;
-    progress: number;
+    episodesWatched?: number;
+    chaptersRead?: number;
     totalEpisodes?: number;
     totalChapters?: number;
-    totalVolumes?: number;
-    score?: number;
+    startDate?: string;
+    endDate?: string;
   };
   isFavorite?: boolean;
   onAddToList?: () => void;
   onToggleFavorite?: () => void;
-  onStatusChange?: (status: string) => void;
-  onProgressChange?: (progress: number) => void;
+  onUpdateEntry?: (data: Partial<{
+    status: string;
+    episodesWatched: number;
+    chaptersRead: number;
+    startDate: string;
+    endDate: string;
+  }>) => void;
+  onRemoveEntry?: () => void;
 }
 
 export default function MediaDetails({
@@ -36,59 +40,16 @@ export default function MediaDetails({
   isFavorite = false,
   onAddToList,
   onToggleFavorite,
-  onStatusChange,
-  onProgressChange,
+  onUpdateEntry,
+  onRemoveEntry,
 }: MediaDetailsProps) {
-  const [progress, setProgress] = useState(userEntry?.progress || 0);
-
   const isAnime = type === "anime";
   const animeData = isAnime ? (data as AnimeData) : null;
   const mangaData = !isAnime ? (data as MangaData) : null;
 
-  const totalEpisodes = animeData?.episodes;
-  const totalChapters = mangaData?.chapters;
-
-  const statusOptions = isAnime
-    ? [
-        { value: "WATCHING", label: "Watching" },
-        { value: "COMPLETED", label: "Completed" },
-        { value: "ON_HOLD", label: "On Hold" },
-        { value: "DROPPED", label: "Dropped" },
-        { value: "PLAN_TO_WATCH", label: "Plan to Watch" },
-      ]
-    : [
-        { value: "READING", label: "Reading" },
-        { value: "COMPLETED", label: "Completed" },
-        { value: "ON_HOLD", label: "On Hold" },
-        { value: "DROPPED", label: "Dropped" },
-        { value: "PLAN_TO_READ", label: "Plan to Read" },
-      ];
-
-  const getProgressPercentage = () => {
-    if (isAnime && totalEpisodes) {
-      return (progress / totalEpisodes) * 100;
-    }
-    if (!isAnime && totalChapters) {
-      return (progress / totalChapters) * 100;
-    }
-    return 0;
-  };
-
-  const getProgressText = () => {
-    if (isAnime) {
-      return totalEpisodes ? `${progress}/${totalEpisodes} episodes` : `${progress} episodes`;
-    }
-    return totalChapters ? `${progress}/${totalChapters} chapters` : `${progress} chapters`;
-  };
-
-  const handleProgressChange = (newProgress: number) => {
-    setProgress(newProgress);
-    onProgressChange?.(newProgress);
-  };
-
   return (
     <div className="relative min-h-screen">
-      {/* Background Image with Overlay */}
+      {/* Background Image */}
       <div className="fixed inset-0 -z-10">
         <Image
           src={data.images.jpg.large_image_url}
@@ -103,35 +64,74 @@ export default function MediaDetails({
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Image */}
+          {/* Left Sidebar */}
           <div className="lg:col-span-1">
-            <div className="stick top-8 aspect-[3/4] relative">
-                    <Image
-                      src={data.images.jpg.large_image_url}
-                      alt={data.title}
-                      fill
-                      className="object-cover rounded-lg"
+            <div className="sticky top-8 space-y-4">
+              <div className="aspect-[3/4] relative">
+                <Image
+                  src={data.images.jpg.large_image_url}
+                  alt={data.title}
+                  fill
+                  className="object-cover rounded-lg"
+                />
+              </div>
+
+              {/* User Actions */}
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  {!userEntry ? (
+                    <Button onClick={onAddToList} className="flex-1 flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add to List
+                    </Button>
+                  ) : onUpdateEntry && onRemoveEntry && (
+                    <TrackingPopover
+                      type={type}
+                      userEntry={{
+                        status: userEntry.status,
+                        episodesWatched: userEntry.episodesWatched,
+                        chaptersRead: userEntry.chaptersRead,
+                        totalEpisodes: userEntry.totalEpisodes || (isAnime ? animeData?.episodes : undefined),
+                        totalChapters: userEntry.totalChapters || (!isAnime ? mangaData?.chapters : undefined),
+                        startDate: userEntry.startDate,
+                        endDate: userEntry.endDate,
+                      }}
+                      onUpdate={onUpdateEntry}
+                      onRemove={onRemoveEntry}
+                      trigger={
+                        <Button variant="secondary" className="flex-1">
+                          Update
+                        </Button>
+                      }
                     />
+                  )}
+
+                  <Button
+                    variant={isFavorite ? "default" : "outline"}
+                    onClick={onToggleFavorite}
+                    className="aspect-square p-0 flex items-center justify-center"
+                    size="icon"
+                  >
+                    <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Details */}
+          {/* Right Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Title and Basic Info */}
             <div className="space-y-4">
+              {/* Titles */}
               <div>
                 <h1 className="text-4xl font-bold text-foreground mb-2">
                   {data.title}
                 </h1>
                 {data.title_english && data.title_english !== data.title && (
-                  <h2 className="text-xl text-muted-foreground">
-                    {data.title_english}
-                  </h2>
+                  <h2 className="text-xl text-muted-foreground">{data.title_english}</h2>
                 )}
                 {data.title_japanese && (
-                  <h3 className="text-lg text-muted-foreground">
-                    {data.title_japanese}
-                  </h3>
+                  <h3 className="text-lg text-muted-foreground">{data.title_japanese}</h3>
                 )}
                 {data.title_synonyms.length > 0 && (
                   <p className="text-sm text-muted-foreground">
@@ -140,7 +140,7 @@ export default function MediaDetails({
                 )}
               </div>
 
-              {/* Score and Stats */}
+              {/* Score & Stats */}
               <div className="flex items-center gap-4 flex-wrap">
                 {data.score && (
                   <div className="flex items-center gap-1">
@@ -151,26 +151,16 @@ export default function MediaDetails({
                     </span>
                   </div>
                 )}
-                {data.rank && (
-                  <Badge variant="secondary">
-                    Rank #{data.rank}
-                  </Badge>
-                )}
-                <Badge variant="outline">
-                  {data.status}
-                </Badge>
-                <Badge variant="outline">
-                  {data.type}
-                </Badge>
+                {data.rank && <Badge variant="secondary">Rank #{data.rank}</Badge>}
+                <Badge variant="outline">{data.status}</Badge>
+                <Badge variant="outline">{data.type}</Badge>
               </div>
 
               {/* Synopsis */}
               {data.synopsis && (
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Synopsis</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {data.synopsis}
-                  </p>
+                  <p className="text-muted-foreground leading-relaxed">{data.synopsis}</p>
                 </div>
               )}
 
@@ -203,95 +193,9 @@ export default function MediaDetails({
               )}
             </div>
 
-            <Separator />
-
-            {/* User Actions */}
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                {userEntry ? (
-                  <Select
-                    value={userEntry.status}
-                    onValueChange={onStatusChange}
-                  >
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Button onClick={onAddToList} className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add to List
-                  </Button>
-                )}
-
-                <Button
-                  variant={isFavorite ? "default" : "outline"}
-                  onClick={onToggleFavorite}
-                  className="flex items-center gap-2"
-                >
-                  <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
-                  {isFavorite ? "Favorited" : "Add to Favorites"}
-                </Button>
-              </div>
-
-              {/* Progress Section */}
-              {userEntry && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Progress</h3>
-                    <span className="text-sm text-muted-foreground">
-                      {getProgressText()}
-                    </span>
-                  </div>
-                  
-                  {(totalEpisodes || totalChapters) ? (
-                    <div className="space-y-2">
-                      <Progress value={getProgressPercentage()} className="h-2" />
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleProgressChange(Math.max(0, progress - 1))}
-                          disabled={progress <= 0}
-                        >
-                          -
-                        </Button>
-                        <span className="flex-1 text-center font-mono">
-                          {progress}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const max = totalEpisodes || totalChapters || Infinity;
-                            handleProgressChange(Math.min(max, progress + 1));
-                          }}
-                          disabled={progress >= (totalEpisodes || totalChapters || Infinity)}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      Episodes/chapters count not available for this series
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Additional Details */}
+            {/* Extra Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Info */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Information</h3>
                 <div className="space-y-2 text-sm">
@@ -362,6 +266,7 @@ export default function MediaDetails({
                 </div>
               </div>
 
+              {/* Production/Publication */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">
                   {isAnime ? "Production" : "Publication"}

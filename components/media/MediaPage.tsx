@@ -86,7 +86,7 @@ export default function MediaPage({ type }: MediaPageProps) {
         } else {
           [topData, airingData] = await Promise.all([
             JikanAPI.getTopManga({ limit: 20 }),
-            JikanAPI.searchManga({ status: "publishing", limit: 20 })
+            JikanAPI.searchManga({ status: "publishing" })
           ]);
         }
 

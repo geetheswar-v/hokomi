@@ -11,9 +11,12 @@ import type { AnimeData } from "@/types";
 interface UserEntry {
   id: string;
   status: string;
-  progress: number;
+  episodesWatched: number;
   totalEpisodes?: number;
   score?: number;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
 }
 
 export default function AnimeDetailsPage() {
@@ -39,7 +42,7 @@ export default function AnimeDetailsPage() {
 
         // Fetch user data if authenticated
         if (session?.user) {
-          const userResponse = await fetch(`/api/user/entries?malId=${malId}&type=anime`);
+          const userResponse = await fetch(`/api/user/anime/entries?malId=${malId}`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             setUserEntry(userData.userEntry);
@@ -63,19 +66,18 @@ export default function AnimeDetailsPage() {
     if (!session?.user || !animeData) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/anime/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: animeData.mal_id,
-          type: "anime",
           action: "add",
           title: animeData.title,
           imageUrl: animeData.images.webp.large_image_url || animeData.images.jpg.large_image_url,
           status: "PLAN_TO_WATCH",
-          progress: 0,
+          episodesWatched: 0,
           totalEpisodes: animeData.episodes,
         }),
       });
@@ -115,25 +117,34 @@ export default function AnimeDetailsPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleUpdateEntry = async (data: {
+    status?: string;
+    episodesWatched?: number;
+    score?: number;
+    startDate?: string;
+    endDate?: string;
+    notes?: string;
+  }) => {
     if (!session?.user || !animeData || !userEntry) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/anime/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: animeData.mal_id,
-          type: "anime",
           action: "update",
           title: animeData.title,
           imageUrl: animeData.images.webp.large_image_url || animeData.images.jpg.large_image_url,
-          status: newStatus,
-          progress: userEntry.progress,
+          status: data.status || userEntry.status,
+          episodesWatched: data.episodesWatched ?? userEntry.episodesWatched,
           totalEpisodes: animeData.episodes,
-          score: userEntry.score,
+          score: data.score ?? userEntry.score,
+          startDate: data.startDate || userEntry.startDate,
+          endDate: data.endDate || userEntry.endDate,
+          notes: data.notes || userEntry.notes,
         }),
       });
 
@@ -142,38 +153,30 @@ export default function AnimeDetailsPage() {
         setUserEntry(result.entry);
       }
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error("Error updating entry:", error);
     }
   };
 
-  const handleProgressChange = async (newProgress: number) => {
-    if (!session?.user || !animeData || !userEntry) return;
+  const handleRemoveEntry = async () => {
+    if (!session?.user || !animeData) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/anime/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: animeData.mal_id,
-          type: "anime",
-          action: "update",
-          title: animeData.title,
-          imageUrl: animeData.images.webp.large_image_url || animeData.images.jpg.large_image_url,
-          status: userEntry.status,
-          progress: newProgress,
-          totalEpisodes: animeData.episodes,
-          score: userEntry.score,
+          action: "remove",
         }),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        setUserEntry(result.entry);
+        setUserEntry(null);
       }
     } catch (error) {
-      console.error("Error updating progress:", error);
+      console.error("Error removing entry:", error);
     }
   };
 
@@ -220,15 +223,18 @@ export default function AnimeDetailsPage() {
       type="anime"
       userEntry={userEntry ? {
         status: userEntry.status,
-        progress: userEntry.progress,
+        episodesWatched: userEntry.episodesWatched,
         totalEpisodes: userEntry.totalEpisodes,
         score: userEntry.score,
+        startDate: userEntry.startDate,
+        endDate: userEntry.endDate,
+        notes: userEntry.notes,
       } : undefined}
       isFavorite={isFavorite}
       onAddToList={handleAddToList}
       onToggleFavorite={handleToggleFavorite}
-      onStatusChange={handleStatusChange}
-      onProgressChange={handleProgressChange}
+      onUpdateEntry={handleUpdateEntry}
+      onRemoveEntry={handleRemoveEntry}
     />
   );
 }

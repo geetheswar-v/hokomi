@@ -13,8 +13,8 @@ interface UserEntry {
   status: string;
   chaptersRead: number;
   totalChapters?: number;
-  totalVolumes?: number;
-  score?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export default function MangaDetailsPage() {
@@ -40,7 +40,7 @@ export default function MangaDetailsPage() {
 
         // Fetch user data if authenticated
         if (session?.user) {
-          const userResponse = await fetch(`/api/user/entries?malId=${malId}&type=manga`);
+          const userResponse = await fetch(`/api/user/manga/entries?malId=${malId}`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             setUserEntry(userData.userEntry);
@@ -64,21 +64,19 @@ export default function MangaDetailsPage() {
     if (!session?.user || !mangaData) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/manga/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: mangaData.mal_id,
-          type: "manga",
           action: "add",
           title: mangaData.title,
           imageUrl: mangaData.images.webp.large_image_url || mangaData.images.jpg.large_image_url,
           status: "PLAN_TO_READ",
-          progress: 0,
+          chaptersRead: 0,
           totalChapters: mangaData.chapters,
-          totalVolumes: mangaData.volumes,
         }),
       });
 
@@ -117,26 +115,32 @@ export default function MangaDetailsPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleUpdateEntry = async (data: {
+    status?: string;
+    chaptersRead?: number;
+    score?: number;
+    startDate?: string;
+    endDate?: string;
+    notes?: string;
+  }) => {
     if (!session?.user || !mangaData || !userEntry) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/manga/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: mangaData.mal_id,
-          type: "manga",
           action: "update",
           title: mangaData.title,
           imageUrl: mangaData.images.webp.large_image_url || mangaData.images.jpg.large_image_url,
-          status: newStatus,
-          progress: userEntry.chaptersRead,
+          status: data.status || userEntry.status,
+          chaptersRead: data.chaptersRead ?? userEntry.chaptersRead,
           totalChapters: mangaData.chapters,
-          totalVolumes: mangaData.volumes,
-          score: userEntry.score,
+          startDate: data.startDate || userEntry.startDate,
+          endDate: data.endDate || userEntry.endDate,
         }),
       });
 
@@ -145,39 +149,30 @@ export default function MangaDetailsPage() {
         setUserEntry(result.entry);
       }
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error("Error updating entry:", error);
     }
   };
 
-  const handleProgressChange = async (newProgress: number) => {
-    if (!session?.user || !mangaData || !userEntry) return;
+  const handleRemoveEntry = async () => {
+    if (!session?.user || !mangaData) return;
 
     try {
-      const response = await fetch("/api/user/entries", {
+      const response = await fetch("/api/user/manga/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           malId: mangaData.mal_id,
-          type: "manga",
-          action: "update",
-          title: mangaData.title,
-          imageUrl: mangaData.images.webp.large_image_url || mangaData.images.jpg.large_image_url,
-          status: userEntry.status,
-          progress: newProgress,
-          totalChapters: mangaData.chapters,
-          totalVolumes: mangaData.volumes,
-          score: userEntry.score,
+          action: "remove",
         }),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        setUserEntry(result.entry);
+        setUserEntry(null);
       }
     } catch (error) {
-      console.error("Error updating progress:", error);
+      console.error("Error removing entry:", error);
     }
   };
 
@@ -224,16 +219,16 @@ export default function MangaDetailsPage() {
       type="manga"
       userEntry={userEntry ? {
         status: userEntry.status,
-        progress: userEntry.chaptersRead,
+        chaptersRead: userEntry.chaptersRead,
         totalChapters: userEntry.totalChapters,
-        totalVolumes: userEntry.totalVolumes,
-        score: userEntry.score,
+        startDate: userEntry.startDate,
+        endDate: userEntry.endDate,
       } : undefined}
       isFavorite={isFavorite}
       onAddToList={handleAddToList}
       onToggleFavorite={handleToggleFavorite}
-      onStatusChange={handleStatusChange}
-      onProgressChange={handleProgressChange}
+      onUpdateEntry={handleUpdateEntry}
+      onRemoveEntry={handleRemoveEntry}
     />
   );
 }
