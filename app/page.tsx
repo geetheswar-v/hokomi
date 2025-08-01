@@ -1,6 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -20,6 +22,15 @@ export default function Home() {
       <p className="text-lg mb-4">
         {session ? `Hello, ${session.user?.name || "User"}!` : "You are not logged in."}
       </p>
+      
+      <div className="flex space-x-4">
+        <Link href="/anime">
+        <Button>Anime</Button>
+        </Link>
+        <Link href="/manga">
+          <Button>Manga</Button>
+        </Link>
+      </div>
     </div>
   );
 }

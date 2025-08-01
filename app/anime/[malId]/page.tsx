@@ -225,10 +225,8 @@ export default function AnimeDetailsPage() {
         status: userEntry.status,
         episodesWatched: userEntry.episodesWatched,
         totalEpisodes: userEntry.totalEpisodes,
-        score: userEntry.score,
         startDate: userEntry.startDate,
         endDate: userEntry.endDate,
-        notes: userEntry.notes,
       } : undefined}
       isFavorite={isFavorite}
       onAddToList={handleAddToList}
