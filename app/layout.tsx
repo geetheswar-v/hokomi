@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hokomi - Authentication App",
-  description: "Full-stack authentication with Next.js, NextAuth.js, and Prisma",
+  title: "Hokomi - Anime and Manga Tracker",
+  description: "An Anime and Manga Recommendatation and Tracking App",
 };
 
 export default function RootLayout({
